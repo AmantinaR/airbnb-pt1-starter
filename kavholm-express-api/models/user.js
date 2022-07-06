@@ -77,7 +77,7 @@ class User {
     )
     const user = userResult.rows[0]
 
-    return user
+    return this.makePublicUser(user);
   }
 
   static async fetchUserByEmail(email) {

@@ -114,6 +114,59 @@ class Booking {
 
     return results.rows
   }
+
+  static async createBooking({newBooking, listing, user}) {
+    const requiredFields = ["startDate", "endDate"]
+    //console.log("listing", listing)
+    requiredFields.forEach((field) => {
+      if (!newBooking?.hasOwnProperty(field)) {
+        
+        throw new BadRequestError(`Missing required field - ${field} - in request body.`)
+      }
+    })
+    if(!user?.username){
+      
+      throw new BadRequestError(`Missing required field - username - in request body.`)
+    }
+    if(!listing?.userId || !listing?.price){
+      
+      throw new BadRequestError(`Missing required field - listing - in request body.`)
+    }
+    const startD = new Date(newBooking.startDate);//2022-01-10
+    const endD = new Date(newBooking.endDate);
+    const nightPrice = parseInt(listing.price)*1.1;
+    const totalPrice = (((endD - startD)/86400000)+1)*nightPrice;
+    console.log("type", typeof(totalPrice));
+    const results = await db.query(
+      `
+        INSERT INTO bookings (payment_method, start_date, end_date, guests, total_cost, listing_id, user_id)
+        VALUES ($1, ($2)::date, ($3)::date, $4, CEIL($7) , $5, (SELECT id FROM users WHERE users.username = $6))
+        RETURNING id,
+                  payment_method AS "paymentMethod",
+                  user_id AS "userId",
+                  $6 AS "username",
+                  start_date AS "startDate",
+                  end_date AS "endDate",
+                  guests,
+                  listing_id AS "listingId",
+                  total_cost::DECIMAL AS "totalCost",
+                  (SELECT username FROM users WHERE users.id = $8) AS "hostUsername",
+                  created_at AS "createdAt";
+      `,
+      [
+        newBooking?.paymentMethod || "card",
+        newBooking.startDate,
+        newBooking.endDate,
+        newBooking?.guests || 1,
+        listing.id,
+        user.username,
+        totalPrice,
+        listing.userId
+      ]
+    )
+
+    return results.rows[0]
+  }
 }
 
 module.exports = Booking
