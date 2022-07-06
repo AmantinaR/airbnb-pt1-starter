@@ -149,7 +149,7 @@ class Booking {
                   end_date AS "endDate",
                   guests,
                   listing_id AS "listingId",
-                  total_cost::DECIMAL AS "totalCost",
+                  total_cost::INTEGER AS "totalCost",
                   (SELECT username FROM users WHERE users.id = $8) AS "hostUsername",
                   created_at AS "createdAt";
       `,
@@ -164,7 +164,7 @@ class Booking {
         listing.userId
       ]
     )
-
+    results.rows[0].totalCost = `$${results.rows[0].totalCost.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`
     return results.rows[0]
   }
 }
